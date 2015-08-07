@@ -10,8 +10,10 @@ $sql_route = pg_query("
 		transport_routes.tags->'from' as route_from,
 		transport_routes.tags->'to' as route_to,
 		ST_AsGeoJSON(geom) as geom,
-		transport_routes.length as length
+		transport_routes.length as length,
+		place_id
 	FROM transport_routes
+	JOIN transport_location ON (id=route_id)
 	WHERE id=".$r_id.";
 ");
 
@@ -90,6 +92,7 @@ while ($row_route = pg_fetch_assoc($sql_route)){
 				'type': 'Feature',
 				'properties': {
 					'type': '".$transport_type_names[$row_route['type']]."',
+					'place_id': ".intval($row_route['place_id']).",
 					'ref': '".$row_route['ref']."',
 					'from': '".$row_route['route_from']."',
 					'to' :'".$row_route['route_to']."',

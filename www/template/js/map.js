@@ -345,6 +345,10 @@ function createRouteInfo(feature) {
 		'ref': feature.properties.ref,
 		'length': feature.properties.length
 	}));
+	$('#close_route').click(function() {
+		clearRouteLayer();
+		console.log(feature.properties.place_id);
+	});
 }
 
 function createListElements(feature, layer) {
