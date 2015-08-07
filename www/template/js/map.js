@@ -82,7 +82,7 @@ function clearRouteLayer() {
 
 	RouteID = '';
 
-	$('#left_panel').hide();
+	//$('#left_panel').hide();
 	map.invalidateSize();
 	setMapURL();
 	
@@ -347,7 +347,27 @@ function createRouteInfo(feature) {
 	}));
 	$('#close_route').click(function() {
 		clearRouteLayer();
-		console.log(feature.properties.place_id);
+		showPlaceRoutes(feature.properties.place_id)
+	});
+}
+
+function showRouteInfo(route_ref, route_type, place_id) {
+	
+}
+
+function showPlaceRoutes(place_id) {
+	$.ajax({
+		type: "GET",
+		url: "/ajax/get_routes_list.php",
+		data: {
+			id: place_id
+		},
+		dataType: "html",
+		async: true,
+		success: function(data){
+			console.log(data);
+			$('#left_panel_content').html(data);
+		}
 	});
 }
 
