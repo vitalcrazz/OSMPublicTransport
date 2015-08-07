@@ -362,11 +362,11 @@ function showPlaceRoutes(place_id) {
 		data: {
 			id: place_id
 		},
-		dataType: "html",
+		dataType: "json",
 		async: true,
 		success: function(data){
-			console.log(data);
-			$('#left_panel_content').html(data);
+			var template = _.template($('#route_list_template').html());
+			$('#left_panel_content').html(template(data));
 		}
 	});
 }

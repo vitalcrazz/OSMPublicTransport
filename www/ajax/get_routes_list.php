@@ -15,7 +15,12 @@ WHERE
 $row = pg_fetch_assoc($sql_place);
 $place_id=$row['id'];
 $place_name=$row['name'];
-$output = "<div class='content_body'><h2 align=center>Маршруты общественного транспорта (".$place_name.")</h2>";
+
+$output = array(
+	'place_name' => $place_name,
+	'place_id' => $place_id,
+	'transport' => array()
+);
 
 $pt_array = explode(',',PUBLIC_TRANSPORT);
 
@@ -46,29 +51,25 @@ for ($i = 0; $i < count($pt_array); $i++) {
 			case "tram": $pt_name="Трамваи:"; break;
 			case "train": $pt_name="Поезда:"; break;
 		}
-		$tmp=0;
-		$output .=
-			"<h3>".$pt_name."</h3>".
-			"<p align=justify>";
+		
+		$tr_type = $pt_array[$i];
+		$output['transport'][$tr_type] = array(
+			'name' => $pt_name,
+			'routes' => array()
+		);
+		
 		while ($row = pg_fetch_assoc($sql_transport)){
-			$tmp++;
-			$output .= "<a href='/routes/route_info?id=".$place_id."&type=" . $row['type'] . "&ref=" . urlencode($row['ref']) ."'>". $row['ref'] . "</a>";
-			if ($tmp<$pt_count)
-			{
-				$output .= ", ";
-			}
+			
+			$output['transport'][$tr_type]['routes'][] = array(
+				//'type' => $row['type'],
+				'ref' => $row['ref'],
+			);
 		}
-		$output .= "</p>";
 	}
 }
-
-$output .= "</div>";
 
 pg_free_result($sql_transport);
 
 pg_close($dbconn);
 
-$page_title=$place_name.' - маршруты общественного транспорта OpenStreetMap';
-$page = 'routes';
-
-echo $output;
+echo json_encode($output);
