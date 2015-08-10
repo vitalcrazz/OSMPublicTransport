@@ -66,9 +66,15 @@
 </script>
 
 <script type="text/html" id="route_directions_template">
+	<div id="content_header" align="center">
+		<div align="center">
+			<a href="#" onclick="showPlaceRoutes(<%=place_id%>)"><%= place_name %></a>
+			<hr>
+		</div>
+	</div>
 	<div class="content_body">
 		<h2 align="center">
-			<%= name %> (<a href="routes_list?id=<%=place_id%>"><%= place_name %></a>)
+			<%= name %> <%= ref %>
 		</h2>
 		<% _.each(routes, function(item) { %>
 			<p>
