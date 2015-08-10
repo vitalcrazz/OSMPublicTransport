@@ -1,3 +1,7 @@
+var MapPosition = '3/60.50/107.50'.split('/');
+var MapBaseLayer = 'S';
+var RouteID = '';
+
 var Router = Backbone.Router.extend({
 	routes: {
 	  "(map/:map)(/layer/:layer)(/route/:route)": "reload"
@@ -5,9 +9,6 @@ var Router = Backbone.Router.extend({
 	reload: function(map, layer, route) {
 		if (map) {
 			MapPosition = map.split('/');
-		}
-		else {
-			MapPosition = '3/60.50/107.50'.split('/');
 		}
 		
 		MapBaseLayer = layer ? layer : 'S';
@@ -18,12 +19,13 @@ var Router = Backbone.Router.extend({
 function setMapURL() {
 	var urlRouteID = '';
 	if (RouteID !== '') {
-		urlRouteID = '&route='+RouteID;
+		urlRouteID = '/route='+RouteID;
 	}
-	MapUrl= '#map='+map.getZoom()+'/'+map.getCenter().lat.toFixed(4)+'/'+map.getCenter().lng.toFixed(4)+'&layer='+MapBaseLayer+urlRouteID;
-	location.replace(MapUrl);
+	MapUrl= 'map/'+map.getZoom()+'/'+map.getCenter().lat.toFixed(4)+'/'+map.getCenter().lng.toFixed(4)+'/layer/'+MapBaseLayer+urlRouteID;
+	router.navigate(MapUrl, {trigger: true});
+	
 	var date = new Date(new Date().getTime() + 3600 * 1000 * 24 * 365);
-	document.cookie = "OSMPublicTransport="+MapUrl+"; path=/; expires=" + date.toUTCString() + ";";
+	document.cookie = "OSMPublicTransport=#"+MapUrl+"; path=/; expires=" + date.toUTCString() + ";";
 }
 
 function onBaselayerChange() {
