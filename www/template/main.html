@@ -54,6 +54,41 @@
 <script type="text/html" id="route_list_template">
 	<div class="content_body">
 		<h2 align="center">Маршруты общественного транспорта (<%= place_name %>)</h2>
+		<% _.each(transport, function(item, tp_type) { %>
+			<h3><%= item.name %></h3>
+			<p align="justify">
+			<% _.each(item.routes, function(route) { %>
+				<a href="#" onclick="showRouteInfo('<%=route.ref%>', '<%=tp_type%>', <%=place_id%>)"><%= route.ref %></a>
+			<% }); %>
+			</p>
+		<% }); %>
+	</div>
+</script>
+
+<script type="text/html" id="route_directions_template">
+	<div class="content_body">
+		<h2 align="center">
+			<%= name %> (<a href="routes_list?id=<%=place_id%>"><%= place_name %></a>)
+		</h2>
+		<% _.each(routes, function(item) { %>
+			<p>
+				<b><%= item.name %></b>
+				<br>
+				[<a href="/#route=<%= item.id %>">показать на карте</a>]
+				<br>
+				Протяженность: <%= item.distance %> км.
+			</p>
+			<ol>
+				<% _.each(item.stops, function(stop) { %>
+					<li><%= stop %></li>
+				<% }); %>
+			</ol>
+		<% }); %>
+		<% if(typeof old_schema !== "undefined") { %>
+			<p style="color:#FF0000;">
+				Внимание! Маршрут выполнен по старой схеме. Некоторая информация может быть недоступна.
+			</p>
+		<% } %>
 	</div>
 </script>
 

@@ -352,7 +352,21 @@ function createRouteInfo(feature) {
 }
 
 function showRouteInfo(route_ref, route_type, place_id) {
-	
+	$.ajax({
+		type: "GET",
+		url: "/ajax/get_route_info.php",
+		data: {
+			id: place_id,
+			ref: route_ref,
+			type: route_type
+		},
+		dataType: "json",
+		async: true,
+		success: function(data){
+			var template = _.template($('#route_directions_template').html());
+			$('#left_panel_content').html(template(data));
+		}
+	});
 }
 
 function showPlaceRoutes(place_id) {

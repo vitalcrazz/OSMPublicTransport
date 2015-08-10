@@ -44,7 +44,8 @@ for ($i = 0; $i < count($pt_array); $i++) {
 	$pt_count=pg_num_rows($sql_transport);
 
 	if (pg_num_rows($sql_transport)>0) {
-		switch (str_replace("'",'',$pt_array[$i])) {
+		$tr_type = str_replace("'",'',$pt_array[$i]);
+		switch ($tr_type) {
 			case "bus": $pt_name="Автобусы:"; break;
 			case "trolleybus": $pt_name="Троллейбусы:"; break;
 			case "share_taxi": $pt_name="Маршрутные такси:"; break;
@@ -52,7 +53,6 @@ for ($i = 0; $i < count($pt_array); $i++) {
 			case "train": $pt_name="Поезда:"; break;
 		}
 		
-		$tr_type = $pt_array[$i];
 		$output['transport'][$tr_type] = array(
 			'name' => $pt_name,
 			'routes' => array()
