@@ -1,33 +1,19 @@
-function parseURL() {
-	if (document.location.hash == '') {
-		if (document.cookie.substr(19) !== '') {
-			document.location.hash = document.cookie.substr(19);
+var Router = Backbone.Router.extend({
+	routes: {
+	  "(map/:map)(/layer/:layer)(/route/:route)": "reload"
+	},
+	reload: function(map, layer, route) {
+		if (map) {
+			MapPosition = map.split('/');
 		}
-	}
-
-	var param = new Array();
-
-	with (document.location.hash.substr(1)) {
-		for(var i=0; i < split('&').length; i++) {
-			param['url_'+split('&')[i].split('=')[0]] = split('&')[i].split('=')[1];
+		else {
+			MapPosition = '3/60.50/107.50'.split('/');
 		}
+		
+		MapBaseLayer = layer ? layer : 'S';
+		RouteID = route ? route : '';
 	}
-	if ('url_map' in param) {
-		MapPosition = param['url_map'].split('/');
-	} else {
-		MapPosition = '3/60.50/107.50'.split('/');
-	}
-	if ('url_layer' in param) {
-		MapBaseLayer = param['url_layer'];
-	} else {
-		MapBaseLayer = 'S';
-	}
-	if ('url_route' in param) {
-		RouteID = param['url_route'];
-	} else {
-		RouteID = '';
-	}
-}
+});
 
 function setMapURL() {
 	var urlRouteID = '';
@@ -565,7 +551,8 @@ var overlays = {
 	"Места остановок": stopsGeoJsonTileLayer,
 };
 
-parseURL();
+var router = new Router();
+Backbone.history.start();
 
 var map = L.map('map', {
 	center: [MapPosition[1], MapPosition[2]],
