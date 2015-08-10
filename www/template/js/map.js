@@ -38,6 +38,27 @@ function setMapURL() {
 	location.replace(MapUrl);
 	var date = new Date(new Date().getTime() + 3600 * 1000 * 24 * 365);
 	document.cookie = "OSMPublicTransport="+MapUrl+"; path=/; expires=" + date.toUTCString() + ";";
+	
+	geocoderRequest();
+}
+
+function geocoderRequest() {
+	$.ajax({
+		type: "GET",
+		url: "http://open.mapquestapi.com/nominatim/v1/reverse.php",
+		data: {
+			'format': 'json',
+			'lat': map.getCenter().lat,
+			'lon': map.getCenter().lng
+		},
+		dataType: "json",
+		async: true,
+		success: function(data){
+			if(data.address.country_code === "ru") {
+				console.log(data.address.state);
+			}
+		}
+	});
 }
 
 function onBaselayerChange() {
