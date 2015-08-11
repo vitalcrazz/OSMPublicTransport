@@ -76,7 +76,7 @@ while ($row = pg_fetch_assoc($sql_route)){
 		}
 
 		$route_name=$transport_type_names[$r_type]." ".$row['ref'].$pt_name;
-		$output.="<p><b>".$route_name."</b> [<a href='../#route=".$row['id']."'>показать на карте</a>]</b><br>
+		$output.="<p><b>".$route_name."</b> [<a href='/#route/".$row['id']."'>показать на карте</a>]</b><br>
 		Протяженность маршрута: ".round($row['length']/1000,3)." км.</p>";
 
 		$sql_stop = pg_query("

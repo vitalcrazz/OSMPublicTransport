@@ -1,80 +1,34 @@
-var MapPosition = '3/60.50/107.50'.split('/');
-var MapBaseLayer = 'S';
-var RouteID = '';
-
 var Router = Backbone.Router.extend({
 	routes: {
-	  "(map/:map)(/layer/:layer)(/route/:route)": "reload"
+		"map/:zoom/:lat/:lon(/layer/:layer)": "reload",
+		"route/:route": "load_route"
 	},
-	reload: function(map, layer, route) {
-		if (map) {
-			MapPosition = map.split('/');
-		}
+	reload: function(zoom, lat, lon, layer) {
+		map.setView(L.latLng(lat, lon), zoom);
 		
-		MapBaseLayer = layer ? layer : 'S';
-		RouteID = route ? route : '';
+		if(layer) {
+			mapData.set('baseLayer', layer);
+		}
+	},
+	load_route: function(route) {
+		if(route) {
+			mapData.set('RouteID', route);
+		}
 	}
 });
-
-function setMapURL() {
-	var urlRouteID = '';
-	if (RouteID !== '') {
-		urlRouteID = '/route='+RouteID;
-	}
-	MapUrl= 'map/'+map.getZoom()+'/'+map.getCenter().lat.toFixed(4)+'/'+map.getCenter().lng.toFixed(4)+'/layer/'+MapBaseLayer+urlRouteID;
-	router.navigate(MapUrl, {trigger: true});
-	
-	var date = new Date(new Date().getTime() + 3600 * 1000 * 24 * 365);
-	document.cookie = "OSMPublicTransport=#"+MapUrl+"; path=/; expires=" + date.toUTCString() + ";";
-}
-
-function onBaselayerChange() {
-	switch (true) {
-		case map.hasLayer(MapSurferLayer): MapBaseLayer = 'S'; break;
-		case map.hasLayer(SputnikRuLayer): MapBaseLayer = 'K'; break;
-		case map.hasLayer(MapnikLayer): MapBaseLayer = 'M'; break;
-	}
-	setMapURL();
-}
-
-function setBaselayer() {
-	switch (true) {
-		case map.hasLayer(MapSurferLayer): map.removeLayer(MapSurferLayer); break;
-		case map.hasLayer(SputnikRuLayer): map.removeLayer(SputnikRuLayer); break;
-		case map.hasLayer(MapnikLayer): map.removeLayer(MapnikLayer); break;
-	}
-	switch (MapBaseLayer) {
-		case 'S': map.addLayer(MapSurferLayer); break;
-		case 'K': map.addLayer(SputnikRuLayer); break;
-		case 'M': map.addLayer(MapnikLayer); break;
-	}
-	setMapURL();
-}
-
-function setLayersOrder() {
-	if (map.hasLayer(stopsGeoJsonTileLayer)) {
-		stopsGeoJsonTileLayer.bringToFront();
-	}
-	if (map.hasLayer(platformsGeoJsonTileLayer)) {
-		platformsGeoJsonTileLayer.bringToFront();
-	}
-	if (map.hasLayer(stationsGeoJsonTileLayer)) {
-		stationsGeoJsonTileLayer.bringToFront();
-	}
-}
 
 function clearRouteLayer() {
 	RouteLayer.clearLayers();
 	RoutePlatformLayer.clearLayers();
 	RouteStopLayer.clearLayers();
 
-	RouteID = '';
+	mapData.set('RouteID', '');
 
 	//$('#left_panel').hide();
 	map.invalidateSize();
-	setMapURL();
+	//setMapURL();
 
-	checkZoom();
+	//checkZoom();
 }
 
 var RouteLayer = new L.FeatureGroup();
@@ -83,7 +37,6 @@ var RouteStopLayer = new L.FeatureGroup();
 
 function getRouteData(rID) {
 	if (rID !== '') {
-		RouteID = rID;
 		RouteLayer.clearLayers();
 		RoutePlatformLayer.clearLayers();
 		RouteStopLayer.clearLayers();
@@ -190,32 +143,18 @@ function getRouteData(rID) {
 				$('#left_panel').show();
 				map.invalidateSize();
 				map.fitBounds(RouteLayer.getBounds());
-				setMapURL();
+				
+				mapData.set('RouteID', rID);
 			}
 		});
-	}
-}
-
-function checkZoom() {
-	if (map.getZoom() < 14) {
-		if(!RouteID) {
-			document.getElementById("top-message-box").innerHTML = "Приблизьте карту";
-			$('#top-message-box').fadeIn();
-		}
-	}
-	else {
-		//when all overlays are disabled
-		if($("#top-message-box").text()==="Приблизьте карту") {
-			$('#top-message-box').fadeOut();
-		}
 	}
 }
 
 function bindLabel(feature, layer) {
 	if (feature.properties.name !== '') {
 		layer.bindLabel(feature.properties.name, {
-				direction: 'auto'
-			});
+			direction: 'auto'
+		});
 	}
 }
 
@@ -437,17 +376,18 @@ var MapSurferUrl = 'http://129.206.74.245/tiles/roads/x={x}&y={y}&z={z}',
 	MapnikUrl = 'http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
 	PTUrl = 'http://pt.openmap.lt/{z}/{x}/{y}.png';
 
-var MapSurferLayer   = L.tileLayer(MapSurferUrl, {attribution: MapSurferAttr}),
-	SputnikRuLayer  = L.tileLayer(SputnikUrl, {attribution: SputnikAttr}),
-	MapnikLayer  = L.tileLayer(MapnikUrl, {attribution: MapnikAttr}),
-	PTLayer = L.tileLayer(PTUrl, {attribution: PTAttr});
+var MapSurferLayer   = L.tileLayer(MapSurferUrl, {attribution: MapSurferAttr, title: "MapSurfer"}),
+	SputnikRuLayer  = L.tileLayer(SputnikUrl, {attribution: SputnikAttr, title: "sputnik.ru"}),
+	MapnikLayer  = L.tileLayer(MapnikUrl, {attribution: MapnikAttr, title: "Mapnik"}),
+	PTLayer = L.tileLayer(PTUrl, {attribution: PTAttr, title: "Слой маршрутов"});
 
 var platformsGeoJsonTileLayer = new L.TileLayer.GeoJSON('/platform/{z}/{x}/{y}.geojson', {
 		clipTiles: false,
 		unique: function (feature) {
 			return feature.properties.id;
 		},
-		minZoom: 14
+		minZoom: 14,
+		title: "Остановки / платформы"
 	}, {
 		style: {
 			"color": "#1E90FF",
@@ -479,7 +419,8 @@ var stationsGeoJsonTileLayer = new L.TileLayer.GeoJSON('/station/{z}/{x}/{y}.geo
 		unique: function (feature) {
 			return feature.properties.id;
 		},
-		minZoom: 14
+		minZoom: 14,
+		title: "Станции"
 	}, {
 		style: {
 			"color": "#008000",
@@ -511,7 +452,8 @@ var stopsGeoJsonTileLayer = new L.TileLayer.GeoJSON('/stop_pos/{z}/{x}/{y}.geojs
 		unique: function (feature) {
 			return feature.properties.id;
 		},
-		minZoom: 14
+		minZoom: 14,
+		title: "Места остановок"
 	}, {
 		style: {
 			"color": "#FFFFFF",
@@ -540,93 +482,32 @@ var stopsGeoJsonTileLayer = new L.TileLayer.GeoJSON('/stop_pos/{z}/{x}/{y}.geojs
 	}
 );
 
-var baseLayers = {
-	"MapSurfer": MapSurferLayer,
-	"sputnik.ru": SputnikRuLayer,
-	"Mapnik": MapnikLayer
-};
-
-var overlays = {
-	"Слой маршрутов": PTLayer,
-	"Станции": stationsGeoJsonTileLayer,
-	"Остановки / платформы": platformsGeoJsonTileLayer,
-	"Места остановок": stopsGeoJsonTileLayer,
-};
-
-var router = new Router();
-Backbone.history.start();
-
 var map = L.map('map', {
-	center: [MapPosition[1], MapPosition[2]],
-	zoom: MapPosition[0],
 	closePopupOnClick: false
 });
 
-L.control.layers(baseLayers, overlays).addTo(map);
-L.control.scale().addTo(map);
-
-L.control.fullscreen({
-	position: 'topleft',
-	title: 'Full Screen',
-	forceSeparateButton: true,
-	forcePseudoFullscreen: false
-}).addTo(map);
-
-L.control.locate({
-	icon: 'fa fa-map-marker',
-	iconLoading: 'fa fa-spinner fa-spin',
-	onLocationError: function(err) {alert(err.message)},
-	onLocationOutsideMapBounds:  function(context) {
-			alert(context.options.strings.outsideMapBoundsMsg);
+var mapData = new MapData({
+	'map': map,
+	'baseLayers': {
+		'S': MapSurferLayer,
+		'K': SputnikRuLayer,
+		'M': MapnikLayer
 	},
-	strings: {
-		title: "Show me where I am",
-		popup: "Вы находитесь в пределах {distance} м. от этой точки",
-		outsideMapBoundsMsg: "You seem located outside the boundaries of the map"
-	}
-}).addTo(map);
-
-var topMessage = L.Control.extend({
-	options: {
-		position: 'topleft'
-	},
-	onAdd: function (map) {
-		var container = L.DomUtil.create('div', 'top-message');
-		container.id = 'top-message-box';
-		return container;
-	}
+	'overlays': [
+		PTLayer,
+		stationsGeoJsonTileLayer,
+		platformsGeoJsonTileLayer,
+		stopsGeoJsonTileLayer
+	]
 });
 
-map.addControl(new topMessage());
+var router = new Router();
+var mapView = new MapView({'model': mapData, 'router': router});
 
-checkZoom();
+if(!Backbone.history.start()) {
+	router.navigate("map/3/60.50/107.50", {trigger: true});
+}
 
 map.addLayer(platformsGeoJsonTileLayer);
 
-var loading_layers = [ stationsGeoJsonTileLayer, platformsGeoJsonTileLayer, stopsGeoJsonTileLayer ];
-
-loading_layers.forEach(function(element, index, array) {
-	element.on('loading', function() {
-		document.getElementById("top-message-box").innerHTML = "Загрузка";
-		$('#top-message-box').fadeIn();
-	});
-	element.on('load', function() {
-		var is_completed = array.reduce(function(prev, cur) {
-			var tilesToLoad = cur._tilesToLoad || 0;
-			return prev && (tilesToLoad < 1);
-		}, true);
-		if(is_completed)
-			$('#top-message-box').fadeOut();
-	});
-});
-
-setBaselayer();
-
-getRouteData(RouteID);
-
-map.on('baselayerchange', onBaselayerChange);
-map.on('overlayadd', function () {
-	setLayersOrder();
-});
-map.on('moveend', setMapURL);
-map.on('zoomend', checkZoom);
+//getRouteData(RouteID);
