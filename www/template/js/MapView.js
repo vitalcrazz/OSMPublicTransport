@@ -6,6 +6,7 @@ var MapView = Backbone.View.extend({
 		this.listenTo(this.model, "change:position", this.setView);
 		this.listenTo(this.model, "change:zoom", this.setView);
 		this.listenTo(this.model, "change:baseLayer", this.setBaselayer);
+		this.listenTo(this.model, "change:overlayIds", this.setOverlays);
 		this.listenTo(this.model, "mapStateChanged", this.setMapURL);
 		this.listenTo(this.model, "zoomValid", this.zoomValid);
 		this.listenTo(this.model, "zoomInvalid", this.zoomInvalid);
@@ -13,10 +14,25 @@ var MapView = Backbone.View.extend({
 		this.listenTo(this.model, "tilesLoaded", this.tilesLoaded);
 		
 		this.model.trigger("change:baseLayer");
+		this.model.trigger("change:overlayIds");
 	},
 	setBaselayer: function() {
 		this.model.removeBaseLayers();
 		this.model.addBaselayer();
+	},
+	setOverlays: function() {
+		var map = this.model.get('map');
+		var ids = this.model.get('overlayIds');
+		_.each(this.model.get('overlays'), function(item, index) {
+			if(ids.indexOf(index) < 0) {
+				if(map.hasLayer(item))
+					map.removeLayer(item);
+			}
+			else {
+				if(! map.hasLayer(item))
+					map.addLayer(item);
+			}
+		}, this);
 	},
 	setView: function() {		
 		this.model.resetView();
@@ -31,6 +47,10 @@ var MapView = Backbone.View.extend({
 			var pos = this.model.get('position');
 			var zoom = this.model.get('zoom');
 			MapUrl= 'map/'+zoom+'/'+pos.lat.toFixed(4)+'/'+pos.lng.toFixed(4)+'/layer/'+MapBaseLayer;
+			
+			if (this.model.get('overlayIds') !== '') {
+				MapUrl += '/overlays/'+this.model.get('overlayIds');
+			}
 		}
 		this.router.navigate(MapUrl, {trigger: false});
 

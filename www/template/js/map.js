@@ -1,17 +1,20 @@
 var Router = Backbone.Router.extend({
 	routes: {
-		"map/:zoom/:lat/:lon(/layer/:layer)": "reload",
+		"map/:zoom/:lat/:lon(/layer/:layer)(/overlays/:overlays)": "reload",
 		"route/:route": "load_route",
 		"ref/:ref/type/:type/place/:place": "load_directions",
-		"place/:place": "load_place"
+		"place/:place": "load_place",
 	},
-	reload: function(zoom, lat, lon, layer) {		
+	reload: function(zoom, lat, lon, layer, overlays) {		
 		mapData.set({
 			'position': L.latLng(lat, lon),
 			'zoom': zoom
 		});
 		if(layer) {
 			mapData.set('baseLayer', layer);
+		}
+		if(overlays) {
+			mapData.set('overlayIds', overlays);
 		}
 	},
 	load_route: function(route) {	
@@ -36,6 +39,8 @@ function bindLabel(feature, layer) {
 }
 
 function loadFeaturePopupData(feature, layer) {
+	console.log(feature.properties.id);
+	
 	var popupContent;
 	$.ajax({
 		type: "POST",
@@ -298,12 +303,12 @@ var mapData = new MapData({
 		'K': SputnikRuLayer,
 		'M': MapnikLayer
 	},
-	'overlays': [
-		PTLayer,
-		stationsGeoJsonTileLayer,
-		platformsGeoJsonTileLayer,
-		stopsGeoJsonTileLayer
-	]
+	'overlays': {
+		'T': PTLayer,
+		'N': stationsGeoJsonTileLayer,
+		'P': platformsGeoJsonTileLayer,
+		'S': stopsGeoJsonTileLayer
+	}
 });
 
 var router = new Router();

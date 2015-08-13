@@ -2,6 +2,7 @@ var MapData = Backbone.Model.extend({
 	defaults: {
 		'mapEl': 'map',
 		'baseLayer': 'S',
+		'overlayIds': 'P',
 		'RouteID': '',
 		'minZoom': 14,
 		'position': L.latLng(60.50, 107.50),
@@ -19,7 +20,7 @@ var MapData = Backbone.Model.extend({
 		
 		this.init_plugins();
 		
-		this.get('overlays').forEach(function(element, index, array) {
+		_.each(this.get('overlays'), function(element, index, array) {
 			element.on('loading', function() {
 				if (this.get('map').getZoom() >= this.get('minZoom')) {
 					this.trigger('tilesLoading');
@@ -27,7 +28,7 @@ var MapData = Backbone.Model.extend({
 			}, this);
 			element.on('load', function() {
 				if (this.get('map').getZoom() >= this.get('minZoom')) {
-					var is_completed = array.reduce(function(prev, cur) {
+					var is_completed = _.reduce(array, function(prev, cur) {
 						var tilesToLoad = cur._tilesToLoad || 0;
 						return prev && (tilesToLoad < 1);
 					}, true);
@@ -40,7 +41,8 @@ var MapData = Backbone.Model.extend({
 		this.get('map').on('baselayerchange', this.onBaselayerChange, this);
 		this.get('map').on('moveend', this.onMoveEnd, this);
 		this.get('map').on('zoomend', this.onZoomEnd, this);
-		this.get('map').on('overlayadd', this.onOverlayAdd, this);
+		this.get('map').on('overlayadd', this.onOverlayChanged, this);
+		this.get('map').on('overlayremove', this.onOverlayChanged, this);
 	},
 	// return layer array for leaflet
 	mapLayerArray: function(layers) {
@@ -137,7 +139,14 @@ var MapData = Backbone.Model.extend({
 			this.trigger('zoomValid');
 		}
 	},
-	onOverlayAdd: function() {
+	onOverlayChanged: function() {
+		var MapOverlays = '';
+		var m = this.get('map');
+		_.each(this.get('overlays'), function(item, index) {
+			if(m.hasLayer(item)) MapOverlays += index;
+		}, this);
 		
+		this.set({'overlayIds': MapOverlays}, {'silent': true});
+		this.trigger('mapStateChanged');
 	}
 });
