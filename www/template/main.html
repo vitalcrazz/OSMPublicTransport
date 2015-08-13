@@ -18,6 +18,7 @@
 
 <script src='template/js/MapData.js'></script>
 <script src='template/js/MapView.js'></script>
+<script src='template/js/RouteView.js'></script>
 
 <script type='text/javascript'>
 	function left_panel_toggle() {
@@ -41,9 +42,13 @@
 
 <script type="text/html" id="route_info_template">
 	<div id="content_header">
-		<div align="center"><a href="#" id="close_route">Закрыть маршрут</a><hr></div>
-		<%= type %> <%= ref %><br>
-		Протяженность: <%= length %> км.<hr>
+		<div align="center"><a href="#place/<%= place_id %>" id="close_route">Закрыть маршрут</a><hr></div>
+		<a href="#ref/<%=ref%>/type/<%=type%>/place/<%=place_id%>">
+			<%= type_name %> <%= ref %>
+		</a>
+		<br>
+		Протяженность: <%= length %> км.
+		<hr>
 	</div>
 	<form action="" align="center">
 		<select id="SelectList" onchange="SetList()">
@@ -62,7 +67,7 @@
 			<h3><%= item.name %></h3>
 			<p align="justify">
 			<% _.each(item.routes, function(route) { %>
-				<a href="#" onclick="showRouteInfo('<%=route.ref%>', '<%=tp_type%>', <%=place_id%>)"><%= route.ref %></a>
+				<a href="#ref/<%=route.ref%>/type/<%=tp_type%>/place/<%=place_id%>"><%= route.ref %></a>
 			<% }); %>
 			</p>
 		<% }); %>
@@ -72,7 +77,7 @@
 <script type="text/html" id="route_directions_template">
 	<div id="content_header" align="center">
 		<div align="center">
-			<a href="#" onclick="showPlaceRoutes(<%=place_id%>)"><%= place_name %></a>
+			<a href="#place/<%= place_id %>"><%= place_name %></a>
 			<hr>
 		</div>
 	</div>
@@ -82,9 +87,11 @@
 		</h2>
 		<% _.each(routes, function(item) { %>
 			<p>
-				<b><%= item.name %></b>
-				<br>
-				[<a href="/#route=<%= item.id %>">показать на карте</a>]
+				<b>
+					<a href="#route/<%= item.id %>">
+						<%= item.name %>
+					</a>
+				</b>
 				<br>
 				Протяженность: <%= item.distance %> км.
 			</p>

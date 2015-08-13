@@ -83,65 +83,67 @@ $sql_platforms = pg_query("
 		relation_members.sequence_id;
 ");
 
-$result="";
+$result=array();
 
 while ($row_route = pg_fetch_assoc($sql_route)){
 	if ($row_route['geom'] != "") {
-		$result.="
-			geojsonRoute = {
-				'type': 'Feature',
-				'properties': {
-					'type': '".$transport_type_names[$row_route['type']]."',
-					'place_id': ".intval($row_route['place_id']).",
-					'ref': '".$row_route['ref']."',
-					'from': '".$row_route['route_from']."',
-					'to' :'".$row_route['route_to']."',
-					'length':'".round($row_route['length']/1000,3)."'
-				},
-				'geometry': ".$row_route['geom']."
-			}";
+		$result['geojsonRoute'] = array(
+			'type' => 'Feature',
+			'properties' => array(
+				'type' => $row_route['type'],
+				'type_name' => $transport_type_names[$row_route['type']],
+				'place_id' => intval($row_route['place_id']),
+				'ref' => $row_route['ref'],
+				'from' => $row_route['route_from'],
+				'to' => $row_route['route_to'],
+				'length' => round($row_route['length']/1000,3),
+			),
+			'geometry' => json_decode($row_route['geom'], TRUE),
+		);
 	}
 }
 
 if (pg_num_rows($sql_stops) > 0) {
-	$result.="
-	geojsonStops = { 'type': 'FeatureCollection','features': [";
+	$result['geojsonStops'] = array(
+		'type' => 'FeatureCollection',
+		'features' => array(),
+	);
+	
 	while ($row_stops = pg_fetch_assoc($sql_stops)){
 		if ($row_stops['geom'] != "") {
-			$result.="
-				{
-					'type': 'Feature',
-					'properties': {
-						'id':'".$row_stops['id']."',
-						'type': 'stop',
-						'name': '".$row_stops['name']."'
-					},
-					'geometry': ".$row_stops['geom']."
-				},";
+			$result['geojsonStops']['features'][] = array(
+				'type' => 'Feature',
+				'properties' => array(
+					'id' => $row_stops['id'],
+					'type' => 'stop',
+					'name' => $row_stops['name'],
+				),
+				'geometry' => json_decode($row_stops['geom'], TRUE),
+			);
 		}
 	}
-	$result.="]}";
 }
 
 if (pg_num_rows($sql_platforms) > 0) {
-	$result.="
-	geojsonPlatforms = { 'type': 'FeatureCollection','features': [";
+	$result['geojsonPlatforms'] = array(
+		'type' => 'FeatureCollection',
+		'features' => array(),
+	);
+	
 	while ($row_platforms = pg_fetch_assoc($sql_platforms)){
 		if ($row_platforms['geom'] != "") {
-			$result.="
-				{
-					'type': 'Feature',
-					'properties': {
-						'id':'".$row_platforms['id']."',
-						'type': 'platform',
-						'name': '".$row_platforms['name']."'
-					},
-					'geometry': ".$row_platforms['geom']."
-				},";
+			$result['geojsonPlatforms']['features'][] = array(
+				'type' => 'Feature',
+				'properties' => array(
+					'id' => $row_platforms['id'],
+					'type' => 'platform',
+					'name' => $row_platforms['name'],
+				),
+				'geometry' => json_decode($row_platforms['geom'], TRUE),
+			);
 		}
 	}
-	$result.="]}";
 }
 
-echo $result;
-?>
+header('Content-type: application/vnd.geo+json; charset=utf-8');
+echo json_encode($result);

@@ -1,12 +1,20 @@
 var MapData = Backbone.Model.extend({
 	defaults: {
+		'mapEl': 'map',
 		'baseLayer': 'S',
 		'RouteID': '',
-		'minZoom': 14
+		'minZoom': 14,
+		'position': L.latLng(60.50, 107.50),
+		'zoom': 3
 	},
 	initialize: function() {
 		var baseLayers = this.mapLayerArray(this.get('baseLayers'));
 		var overlays = this.mapLayerArray(this.get('overlays'));
+		
+		this.set('map', L.map(this.get('mapEl'), {
+			closePopupOnClick: false
+		}));
+		
 		L.control.layers(baseLayers, overlays).addTo(this.get('map'));
 		
 		this.init_plugins();
@@ -34,10 +42,30 @@ var MapData = Backbone.Model.extend({
 		this.get('map').on('zoomend', this.onZoomEnd, this);
 		this.get('map').on('overlayadd', this.onOverlayAdd, this);
 	},
+	// return layer array for leaflet
 	mapLayerArray: function(layers) {
 		return _.object(_.map(layers, function(val){
 			return [val.options.title, val];
 		}));
+	},
+	resetView: function() {
+		var position = this.get('position');
+		var zoom = this.get('zoom');
+		
+		this.get('map').setView(position, zoom);
+	},
+	removeBaseLayers: function() {
+		var m = this.get('map');
+		_.each(this.get('baseLayers'), function(item, index) {
+			if(m.hasLayer(item)) m.removeLayer(item);
+		}, this);
+	},
+	addBaselayer: function() {
+		var m = this.get('map');
+		var nBaseLayer = _.find(this.get('baseLayers'), function(item, index) {
+			return (this.get('baseLayer') === index);
+		}, this);
+		m.addLayer(nBaseLayer);
 	},
 	init_plugins: function() {
 		var map = this.get('map');
@@ -91,10 +119,16 @@ var MapData = Backbone.Model.extend({
 		this.trigger('mapStateChanged');
 	},
 	onMoveEnd: function() {
+		var mapPosition = this.get('map').getCenter()
+		this.set({'position': mapPosition}, {'silent': true});
+		
 		this.trigger('mapStateChanged');
 	},
 	onZoomEnd: function() {
-		if (this.get('map').getZoom() < this.get('minZoom')) {
+		var mapZoom = this.get('map').getZoom();
+		this.set({'zoom': mapZoom}, {'silent': true});
+		
+		if (mapZoom < this.get('minZoom')) {
 			if(!this.get('RouteID')) {
 				this.trigger('zoomInvalid');
 			}

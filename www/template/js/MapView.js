@@ -3,6 +3,8 @@ var MapView = Backbone.View.extend({
 	initialize: function(options) {
 		this.router = options.router;
 		
+		this.listenTo(this.model, "change:position", this.setView);
+		this.listenTo(this.model, "change:zoom", this.setView);
 		this.listenTo(this.model, "change:baseLayer", this.setBaselayer);
 		this.listenTo(this.model, "mapStateChanged", this.setMapURL);
 		this.listenTo(this.model, "zoomValid", this.zoomValid);
@@ -12,16 +14,12 @@ var MapView = Backbone.View.extend({
 		
 		this.model.trigger("change:baseLayer");
 	},
-	setBaselayer: function(options) {
-		var m = this.model.get('map');
-		_.each(this.model.get('baseLayers'), function(item, index) {
-			if(m.hasLayer(item)) m.removeLayer(item);
-		}, this);
-		
-		var nBaseLayer = _.find(this.model.get('baseLayers'), function(item, index) {
-			return (this.model.get('baseLayer') === index);
-		}, this);
-		m.addLayer(nBaseLayer);
+	setBaselayer: function() {
+		this.model.removeBaseLayers();
+		this.model.addBaselayer();
+	},
+	setView: function() {		
+		this.model.resetView();
 	},
 	setMapURL: function() {
 		var MapUrl;
@@ -30,8 +28,9 @@ var MapView = Backbone.View.extend({
 		}
 		else {
 			var MapBaseLayer = this.model.get('baseLayer');
-			var m = this.model.get('map');
-			MapUrl= 'map/'+m.getZoom()+'/'+m.getCenter().lat.toFixed(4)+'/'+m.getCenter().lng.toFixed(4)+'/layer/'+MapBaseLayer;
+			var pos = this.model.get('position');
+			var zoom = this.model.get('zoom');
+			MapUrl= 'map/'+zoom+'/'+pos.lat.toFixed(4)+'/'+pos.lng.toFixed(4)+'/layer/'+MapBaseLayer;
 		}
 		this.router.navigate(MapUrl, {trigger: false});
 
