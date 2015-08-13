@@ -6,7 +6,8 @@ $r_id = $_GET['id'];
 $sql_place = pg_query("
 SELECT
 	id,
-	name
+	name,
+	ST_AsGeoJSON(geom) as geom
 FROM places
 WHERE
 	id='$r_id'
@@ -19,6 +20,7 @@ $place_name=$row['name'];
 $output = array(
 	'place_name' => $place_name,
 	'place_id' => $place_id,
+	'geometry' => json_decode($row['geom'], TRUE),
 	'transport' => array()
 );
 

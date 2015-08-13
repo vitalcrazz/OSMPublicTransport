@@ -1,8 +1,5 @@
 var RouteView = Backbone.View.extend({
-	router: null,
-	initialize: function(options) {
-		this.router = options.router;
-		
+	initialize: function(options) {		
 		this.RouteLayer = new L.FeatureGroup();
 		this.RoutePlatformLayer = new L.FeatureGroup();
 		this.RouteStopLayer = new L.FeatureGroup();

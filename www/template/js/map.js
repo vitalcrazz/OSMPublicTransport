@@ -21,15 +21,26 @@ var Router = Backbone.Router.extend({
 		}
 	},
 	load_route: function(route) {	
-		mapData.set('RouteID', route);
+		mapData.set({
+			'RouteID': route,
+			'PlaceID': 0,
+			'RouteRef': ''
+		});
 	},
 	load_place: function(place) {
-		mapData.set('RouteID', '');
-		showPlaceRoutes(place);
+		mapData.set({
+			'RouteID': '',
+			'PlaceID': place,
+			'RouteRef': ''
+		});
 	},
 	load_directions: function(ref, type, place) {
-		mapData.set('RouteID', '');
-		showRouteInfo(ref, type, place);
+		mapData.set({
+			'RouteID': '',
+			'PlaceID': place,
+			'RouteRef': ref,
+			'RouteType': type
+		});
 	}
 });
 
@@ -135,40 +146,6 @@ function loadFeaturePopupData(feature, layer) {
 		mapData.set('feature', 0);
 	});
 	layer.openPopup();
-}
-
-function showRouteInfo(route_ref, route_type, place_id) {
-	$.ajax({
-		type: "GET",
-		url: "/ajax/get_route_info.php",
-		data: {
-			id: place_id,
-			ref: route_ref,
-			type: route_type
-		},
-		dataType: "json",
-		async: true,
-		success: function(data){
-			var template = _.template($('#route_directions_template').html());
-			$('#left_panel_content').html(template(data));
-		}
-	});
-}
-
-function showPlaceRoutes(place_id) {
-	$.ajax({
-		type: "GET",
-		url: "/ajax/get_routes_list.php",
-		data: {
-			id: place_id
-		},
-		dataType: "json",
-		async: true,
-		success: function(data){
-			var template = _.template($('#route_list_template').html());
-			$('#left_panel_content').html(template(data));
-		}
-	});
 }
 
 function SetList() {
@@ -326,7 +303,9 @@ var mapData = new MapData({
 
 var router = new Router();
 var mapView = new MapView({'model': mapData, 'router': router});
-var routeView = new RouteView({'model': mapData, 'router': router});
+var routeView = new RouteView({'model': mapData});
+var placeView = new PlaceView({'model': mapData});
+var refView = new RefView({'model': mapData});
 
 if(!Backbone.history.start()) {
 	mapData.trigger('change:position');

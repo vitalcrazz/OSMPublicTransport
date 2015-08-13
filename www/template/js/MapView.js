@@ -43,6 +43,12 @@ var MapView = Backbone.View.extend({
 		if (this.model.get('RouteID') !== '') {
 			MapUrl = 'route/'+this.model.get('RouteID');
 		}
+		else if(this.model.get('RouteRef') !== '') {
+			MapUrl = 'ref/'+this.model.get('RouteRef')+'/type/'+this.model.get('RouteType')+'/place/'+this.model.get('PlaceID');
+		}
+		else if(this.model.get('PlaceID') > 0) {
+			MapUrl = 'place/'+this.model.get('PlaceID');
+		}
 		else {
 			var MapBaseLayer = this.model.get('baseLayer');
 			var pos = this.model.get('position');
