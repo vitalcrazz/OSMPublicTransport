@@ -6,7 +6,8 @@ var MapData = Backbone.Model.extend({
 		'RouteID': '',
 		'minZoom': 14,
 		'position': L.latLng(60.50, 107.50),
-		'zoom': 3
+		'zoom': 3,
+		'feature': 0
 	},
 	initialize: function() {
 		var baseLayers = this.mapLayerArray(this.get('baseLayers'));

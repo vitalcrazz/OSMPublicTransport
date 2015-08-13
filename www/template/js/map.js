@@ -1,11 +1,11 @@
 var Router = Backbone.Router.extend({
 	routes: {
-		"map/:zoom/:lat/:lon(/layer/:layer)(/overlays/:overlays)": "reload",
+		"map/:zoom/:lat/:lon(/layer/:layer)(/overlays/:overlays)(/feature/:feature)": "reload",
 		"route/:route": "load_route",
 		"ref/:ref/type/:type/place/:place": "load_directions",
 		"place/:place": "load_place",
 	},
-	reload: function(zoom, lat, lon, layer, overlays) {		
+	reload: function(zoom, lat, lon, layer, overlays, feature) {		
 		mapData.set({
 			'position': L.latLng(lat, lon),
 			'zoom': zoom
@@ -15,6 +15,9 @@ var Router = Backbone.Router.extend({
 		}
 		if(overlays) {
 			mapData.set('overlayIds', overlays);
+		}
+		if(feature) {
+			mapData.set('feature', feature);
 		}
 	},
 	load_route: function(route) {	
@@ -39,7 +42,7 @@ function bindLabel(feature, layer) {
 }
 
 function loadFeaturePopupData(feature, layer) {
-	console.log(feature.properties.id);
+	mapData.set('feature', feature.properties.id);
 	
 	var popupContent;
 	$.ajax({
@@ -127,7 +130,10 @@ function loadFeaturePopupData(feature, layer) {
 
 		}
 	});
-	layer.bindPopup(popupContent);
+	var popupObj = layer.bindPopup(popupContent);
+	popupObj.on("popupclose", function(e) {
+		mapData.set('feature', 0);
+	});
 	layer.openPopup();
 }
 
@@ -217,6 +223,13 @@ var platformsGeoJsonTileLayer = new L.TileLayer.GeoJSON('/platform/{z}/{x}/{y}.g
 				opacity: 1,
 				fillOpacity: 1
 			});
+			
+			if(feature.properties.id == mapData.get('feature')) {
+				cMarker.on('add', function() {
+					loadFeaturePopupData(feature, cMarker);
+				});
+			}
+			
 			return cMarker;
 		},
 		onEachFeature: function (feature, layer) {

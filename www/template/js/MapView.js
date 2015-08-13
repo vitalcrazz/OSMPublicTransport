@@ -7,6 +7,7 @@ var MapView = Backbone.View.extend({
 		this.listenTo(this.model, "change:zoom", this.setView);
 		this.listenTo(this.model, "change:baseLayer", this.setBaselayer);
 		this.listenTo(this.model, "change:overlayIds", this.setOverlays);
+		this.listenTo(this.model, "change:feature", this.setMapURL);
 		this.listenTo(this.model, "mapStateChanged", this.setMapURL);
 		this.listenTo(this.model, "zoomValid", this.zoomValid);
 		this.listenTo(this.model, "zoomInvalid", this.zoomInvalid);
@@ -48,8 +49,12 @@ var MapView = Backbone.View.extend({
 			var zoom = this.model.get('zoom');
 			MapUrl= 'map/'+zoom+'/'+pos.lat.toFixed(4)+'/'+pos.lng.toFixed(4)+'/layer/'+MapBaseLayer;
 			
-			if (this.model.get('overlayIds') !== '') {
+			if(this.model.get('overlayIds') !== '') {
 				MapUrl += '/overlays/'+this.model.get('overlayIds');
+			}
+			
+			if(this.model.get('feature') > 0) {
+				MapUrl += '/feature/'+this.model.get('feature');
 			}
 		}
 		this.router.navigate(MapUrl, {trigger: false});
