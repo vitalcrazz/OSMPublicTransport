@@ -1,36 +1,22 @@
 var PlaceView = Backbone.View.extend({
 	el: '#left_panel_content',
-	initialize: function() {
-		this.listenTo(this.model, "change:PlaceID", this.placeIdChanged);
-		this.listenTo(this.model, "change:RouteRef", this.placeIdChanged);
+	initialize: function(options) {
+		this.AppData = options.appdata;
+		
+		this.listenTo(this.model, "change", this.placeIdChanged);
 	},
 	placeIdChanged: function() {
-		if(this.model.get('PlaceID') > 0 && this.model.get('RouteRef') === '') {
-			$('#left_panel').show();
-			this.loadPlaceRoutes();
-		}
+		$('#left_panel').show();
+		this.showPlaceRoutes();
 	},
-	showPlaceRoutes: function(data) {
+	showPlaceRoutes: function() {
 		var template = _.template($('#route_list_template').html());
-		this.$el.html(template(data));
+		this.$el.html(template(this.model.attributes));
 
-		if(data.geometry !== null) {
-			var place_geom = L.geoJson(data.geometry);
-			var map = this.model.get('map');
+		if(this.model.get('geometry') !== null) {
+			var place_geom = L.geoJson(this.model.get('geometry'));
+			var map = this.AppData.get('map');
 			map.fitBounds(place_geom.getBounds());
 		}
-	},
-	loadPlaceRoutes: function() {
-		$.ajax({
-			type: "GET",
-			url: "/ajax/get_routes_list.php",
-			data: {
-				id: this.model.get('PlaceID')
-			},
-			dataType: "json",
-			async: true,
-			success: this.showPlaceRoutes,
-			context: this
-		});
 	}
 });

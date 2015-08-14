@@ -1,11 +1,29 @@
 var RouteInfo = Backbone.Model.extend();
+var RefInfo = Backbone.Model.extend();
+var PlaceInfo = Backbone.Model.extend();
 
 var Routes = Backbone.Collection.extend({
-  'model': RouteInfo,
-  'url' : '/route'
+	'model': RouteInfo,
+	'url': '/route'
+});
+
+var Refs = Backbone.Collection.extend({
+	'model': RefInfo,
+	'url': function() {
+		return "/place/"+this.place+"/type/"+this.type+"/ref";
+	},
+	'place': 0,
+	'type': ''
+});
+
+var Places = Backbone.Collection.extend({
+	'model': PlaceInfo,
+	'url': '/place'
 });
 
 var routeCollection = new Routes();
+var refCollection = new Refs();
+var placesCollection = new Places();
 
 var Router = Backbone.Router.extend({
 	routes: {
@@ -37,6 +55,8 @@ var Router = Backbone.Router.extend({
 		});
 		
 		routeCollection.pop();
+		refCollection.reset();
+		placesCollection.reset();
 		
 		var routeInfo = new RouteInfo({'id': route});
 		routeCollection.add(routeInfo);		
@@ -45,6 +65,14 @@ var Router = Backbone.Router.extend({
 	},
 	load_place: function(place) {
 		routeCollection.pop();
+		refCollection.reset();
+		placesCollection.reset();
+		
+		var placeInfo = new PlaceInfo({'id': place});
+		placesCollection.add(placeInfo);
+		var placeView = new PlaceView({'model': placeInfo, 'appdata': mapData});
+		placeInfo.fetch();
+		
 		mapData.set({
 			'RouteID': '',
 			'PlaceID': place,
@@ -53,6 +81,16 @@ var Router = Backbone.Router.extend({
 	},
 	load_directions: function(ref, type, place) {
 		routeCollection.pop();
+		refCollection.reset();
+		placesCollection.reset();
+		
+		refCollection.type = type;
+		refCollection.place = place;
+		var refInfo = new RefInfo({'id': ref});
+		refCollection.add(refInfo);
+		var refView = new RefView({'model': refInfo});
+		refInfo.fetch();
+		
 		mapData.set({
 			'RouteID': '',
 			'PlaceID': place,
@@ -321,8 +359,6 @@ var mapData = new MapData({
 
 var router = new Router();
 var mapView = new MapView({'model': mapData, 'router': router});
-var placeView = new PlaceView({'model': mapData});
-var refView = new RefView({'model': mapData});
 
 if(!Backbone.history.start()) {
 	mapData.trigger('change:position');
