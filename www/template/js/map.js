@@ -1,3 +1,7 @@
+var RouteInfo = Backbone.Model.extend({
+	'urlRoot' : '/route'
+});
+
 var Router = Backbone.Router.extend({
 	routes: {
 		"map/:zoom/:lat/:lon(/layer/:layer)(/overlays/:overlays)(/feature/:feature)": "reload",
@@ -20,12 +24,16 @@ var Router = Backbone.Router.extend({
 			mapData.set('feature', feature);
 		}
 	},
-	load_route: function(route) {	
+	load_route: function(route) {		
 		mapData.set({
 			'RouteID': route,
 			'PlaceID': 0,
 			'RouteRef': ''
 		});
+		
+		var routeInfo = new RouteInfo({'id': route});
+		var routeView = new RouteView({'model': routeInfo, 'appdata': mapData});
+		routeInfo.fetch();
 	},
 	load_place: function(place) {
 		mapData.set({
@@ -303,7 +311,6 @@ var mapData = new MapData({
 
 var router = new Router();
 var mapView = new MapView({'model': mapData, 'router': router});
-var routeView = new RouteView({'model': mapData});
 var placeView = new PlaceView({'model': mapData});
 var refView = new RefView({'model': mapData});
 

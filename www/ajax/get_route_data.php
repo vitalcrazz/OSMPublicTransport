@@ -1,7 +1,7 @@
 <?php
 include_once ('../include/config.php');
 
-$r_id = $_POST['id'];
+$r_id = $_GET['id'];
 
 $sql_route = pg_query("
 	SELECT

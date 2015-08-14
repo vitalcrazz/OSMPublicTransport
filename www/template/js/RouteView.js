@@ -1,21 +1,21 @@
 var RouteView = Backbone.View.extend({
-	initialize: function(options) {		
+	initialize: function(options) {
+		this.AppData = options.appdata;
+		
 		this.RouteLayer = new L.FeatureGroup();
 		this.RoutePlatformLayer = new L.FeatureGroup();
 		this.RouteStopLayer = new L.FeatureGroup();
 
-		this.listenTo(this.model, "change:RouteID", this.route_changed);
+		this.listenTo(this.model, "change", this.route_changed);
 	},
 	route_changed: function() {
 		this.clearRouteLayer();
-		
-		if(this.model.get('RouteID') !== '') {
-			this.removeOverlays();
-			$("#platform-list").empty();
-			$("#stop-position-list").empty();
-			
-			this.queryRoute();
-		}
+
+		this.removeOverlays();
+		$("#platform-list").empty();
+		$("#stop-position-list").empty();
+
+		this.buildRoute();
 	},
 	clearRouteLayer: function() {
 		this.RouteLayer.clearLayers();
@@ -23,19 +23,19 @@ var RouteView = Backbone.View.extend({
 		this.RouteStopLayer.clearLayers();
 	},
 	removeOverlays: function() {
-		var map = this.model.get('map');
-		_.each(this.model.get('overlays'), function(item) {
+		var map = this.AppData.get('map');
+		_.each(this.AppData.get('overlays'), function(item) {
 			if (map.hasLayer(item)) {
 				map.removeLayer(item);
 			}
 		});
 	},
-	buildRoute: function(data) {
-		var map = this.model.get('map');
+	buildRoute: function() {
+		var map = this.AppData.get('map');
 		var view = this;
 		
-		if (typeof data.geojsonRoute !== "undefined") {
-			L.geoJson(data.geojsonRoute, {
+		if (typeof this.model.get('geojsonRoute') !== "undefined") {
+			L.geoJson(this.model.get('geojsonRoute'), {
 				style: {
 					"color": "#1E90FF",
 					"weight": 6,
@@ -47,8 +47,8 @@ var RouteView = Backbone.View.extend({
 				}
 			}).addTo(this.RouteLayer);
 		}
-		if (typeof data.geojsonStops !== "undefined") {
-			L.geoJson(data.geojsonStops, {
+		if (typeof this.model.get('geojsonStops') !== "undefined") {
+			L.geoJson(this.model.get('geojsonStops'), {
 				style: {
 					"color": "#FFFFFF",
 					"weight": 1,
@@ -73,8 +73,8 @@ var RouteView = Backbone.View.extend({
 				}
 			}).addTo(this.RouteStopLayer);
 		}
-		if (typeof data.geojsonPlatforms !== "undefined") {
-			L.geoJson(data.geojsonPlatforms, {
+		if (typeof this.model.get('geojsonPlatforms') !== "undefined") {
+			L.geoJson(this.model.get('geojsonPlatforms'), {
 				style: {
 					"color": "#1E90FF",
 					"weight": 2,
@@ -112,19 +112,6 @@ var RouteView = Backbone.View.extend({
 		$('#left_panel').show();
 		map.invalidateSize();
 		map.fitBounds(this.RouteLayer.getBounds());
-	},	
-	queryRoute: function() {
-		$.ajax({
-			type: "POST",
-			url: "/ajax/get_route_data.php",
-			data: {
-				id: this.model.get('RouteID')
-			},
-			dataType: "json",
-			async: true,
-			success: this.buildRoute,
-			context: this
-		});
 	},
 	createListElements: function(feature, layer) {
 		if (feature.properties) {
