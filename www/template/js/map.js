@@ -1,6 +1,11 @@
-var RouteInfo = Backbone.Model.extend({
-	'urlRoot' : '/route'
+var RouteInfo = Backbone.Model.extend();
+
+var Routes = Backbone.Collection.extend({
+  'model': RouteInfo,
+  'url' : '/route'
 });
+
+var routeCollection = new Routes();
 
 var Router = Backbone.Router.extend({
 	routes: {
@@ -9,7 +14,7 @@ var Router = Backbone.Router.extend({
 		"ref/:ref/type/:type/place/:place": "load_directions",
 		"place/:place": "load_place",
 	},
-	reload: function(zoom, lat, lon, layer, overlays, feature) {		
+	reload: function(zoom, lat, lon, layer, overlays, feature) {
 		mapData.set({
 			'position': L.latLng(lat, lon),
 			'zoom': zoom
@@ -24,18 +29,22 @@ var Router = Backbone.Router.extend({
 			mapData.set('feature', feature);
 		}
 	},
-	load_route: function(route) {		
+	load_route: function(route) {
 		mapData.set({
 			'RouteID': route,
 			'PlaceID': 0,
 			'RouteRef': ''
 		});
 		
+		routeCollection.pop();
+		
 		var routeInfo = new RouteInfo({'id': route});
+		routeCollection.add(routeInfo);		
 		var routeView = new RouteView({'model': routeInfo, 'appdata': mapData});
 		routeInfo.fetch();
 	},
 	load_place: function(place) {
+		routeCollection.pop();
 		mapData.set({
 			'RouteID': '',
 			'PlaceID': place,
@@ -43,6 +52,7 @@ var Router = Backbone.Router.extend({
 		});
 	},
 	load_directions: function(ref, type, place) {
+		routeCollection.pop();
 		mapData.set({
 			'RouteID': '',
 			'PlaceID': place,

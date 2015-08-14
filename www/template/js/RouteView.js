@@ -7,10 +7,13 @@ var RouteView = Backbone.View.extend({
 		this.RouteStopLayer = new L.FeatureGroup();
 
 		this.listenTo(this.model, "change", this.route_changed);
+		this.listenTo(this.model, "remove", this.route_remove);
+	},
+	route_remove: function() {
+		this.clearRouteLayer();
+		this.remove();
 	},
 	route_changed: function() {
-		this.clearRouteLayer();
-
 		this.removeOverlays();
 		$("#platform-list").empty();
 		$("#stop-position-list").empty();
