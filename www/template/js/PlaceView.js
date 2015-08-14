@@ -4,6 +4,7 @@ var PlaceView = Backbone.View.extend({
 		this.AppData = options.appdata;
 		
 		this.listenTo(this.model, "change", this.placeIdChanged);
+		this.listenTo(this.model, "redraw", this.placeIdChanged);
 	},
 	placeIdChanged: function() {
 		$('#left_panel').show();
