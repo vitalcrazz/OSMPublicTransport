@@ -48,6 +48,7 @@ $sql_route = pg_query("
 		transport_routes.tags->'from' as route_from,
 		transport_routes.tags->'via' as route_via,
 		transport_routes.tags->'to' as route_to,
+		ST_AsGeoJSON(geom) as geom,
 		transport_routes.length as length
 	FROM transport_routes, transport_location
 	WHERE
@@ -83,9 +84,13 @@ while ($row = pg_fetch_assoc($sql_route)){
 		$route_name=$transport_type_names[$r_type]." ".$row['ref'].$pt_name;
 		
 		$output_route = array(
-			'id' => $row['id'],
-			'name' => $route_name,
-			'distance' => round($row['length']/1000,3),
+			'type' => 'Feature',
+			'geometry' => json_decode($row['geom'], TRUE),
+			'properties' => array(
+				'id' => $row['id'],
+				'name' => $route_name,
+				'distance' => round($row['length']/1000,3),
+			),
 			'stops' => array(),
 		);
 

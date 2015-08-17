@@ -55,7 +55,7 @@ var Router = Backbone.Router.extend({
 		});
 		
 		routeCollection.pop();
-		refCollection.reset();
+		refCollection.pop();
 		
 		var routeInfo = new RouteInfo({'id': route});
 		routeCollection.add(routeInfo);		
@@ -64,7 +64,7 @@ var Router = Backbone.Router.extend({
 	},
 	load_place: function(place) {
 		routeCollection.pop();
-		refCollection.reset();
+		refCollection.pop();
 		
 		var placeModel = placesCollection.get(place);
 		if(typeof placeModel === 'undefined') {
@@ -74,7 +74,7 @@ var Router = Backbone.Router.extend({
 			placeInfo.fetch();
 		}
 		else {
-			var placeView = new PlaceView({'model': placeModel, 'appdata': mapData});
+			//var placeView = new PlaceView({'model': placeModel, 'appdata': mapData});
 			placeModel.trigger('redraw');
 		}
 	
@@ -86,13 +86,13 @@ var Router = Backbone.Router.extend({
 	},
 	load_directions: function(ref, type, place) {
 		routeCollection.pop();
-		refCollection.reset();
+		refCollection.pop();
 		
 		refCollection.type = type;
 		refCollection.place = place;
 		var refInfo = new RefInfo({'id': ref});
 		refCollection.add(refInfo);
-		var refView = new RefView({'model': refInfo});
+		var refView = new RefView({'model': refInfo, 'appdata': mapData});
 		refInfo.fetch();
 		
 		mapData.set({

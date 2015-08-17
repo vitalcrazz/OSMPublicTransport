@@ -74,6 +74,16 @@ li.menu_item_right a {
 }
 
 /* Content */
+.route_links {
+	display: block;
+	padding: 5px 5px 5px 15px;
+	background: #FFFFFF;
+}
+
+.route_links:hover {
+	text-decoration: none;
+}
+
 p {
 	padding:0px 10px;
 }
