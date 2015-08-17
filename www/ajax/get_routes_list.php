@@ -32,7 +32,8 @@ for ($i = 0; $i < count($pt_array); $i++) {
 	SELECT
 		--relations.id,
 		transport_routes.tags->'route' as type,
-		transport_routes.tags->'ref' as ref
+		transport_routes.tags->'ref' as ref,
+		ST_AsGeoJSON(ST_Union(geom)) as geom
 	FROM transport_routes, transport_location
 	WHERE
 		transport_location.place_id=".$r_id." and
@@ -65,6 +66,11 @@ for ($i = 0; $i < count($pt_array); $i++) {
 			$output['transport'][$tr_type]['routes'][] = array(
 				//'type' => $row['type'],
 				'ref' => $row['ref'],
+				'route' => array(
+					'type' => 'Feature',
+					'properties' => array(),
+					'geometry' => json_decode($row['geom'], TRUE),
+				),
 			);
 		}
 	}
