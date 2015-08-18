@@ -58,7 +58,11 @@ for ($i = 0; $i < count($pt_array); $i++) {
 		
 		$output['transport'][$tr_type] = array(
 			'name' => $pt_name,
-			'routes' => array()
+			'routes' => array(),
+			'lines' => array(
+				'type' => 'FeatureCollection',
+				'features' => array(),
+			),
 		);
 		
 		while ($row = pg_fetch_assoc($sql_transport)){
@@ -66,10 +70,25 @@ for ($i = 0; $i < count($pt_array); $i++) {
 			$output['transport'][$tr_type]['routes'][] = array(
 				//'type' => $row['type'],
 				'ref' => $row['ref'],
+				/*
 				'route' => array(
 					'type' => 'Feature',
 					'properties' => array(),
 					'geometry' => json_decode($row['geom'], TRUE),
+				),*/
+			);
+		}
+		
+		$linesQuery = "SELECT array_to_json(routes) as routes, ST_AsGeoJSON(geom) as geom
+			FROM place_routes
+			WHERE place_id = $r_id AND route_type = '$tr_type';";
+		$linesResult = pg_query($linesQuery);
+		while ($row = pg_fetch_assoc($linesResult)){
+			$output['transport'][$tr_type]['lines']['features'][] = array(
+				'type' => 'Feature',
+				'geometry' => json_decode($row['geom'], TRUE),
+				'properties' => array(
+					'routes' => json_decode($row['routes'], TRUE),
 				),
 			);
 		}

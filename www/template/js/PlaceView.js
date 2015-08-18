@@ -4,9 +4,10 @@ var PlaceView = Backbone.View.extend({
 		this.AppData = options.appdata;
 		
 		this.RouteLayer = new L.FeatureGroup();
+		this.RefColors = new Array();
 		
 		this.listenTo(this.model, "change", this.place_reload);
-		this.listenTo(this.model, "redraw", this.place_redraw);
+		//this.listenTo(this.model, "redraw", this.place_redraw);
 	},
 	place_redraw: function() {
 		$('#left_panel').show();
@@ -14,10 +15,12 @@ var PlaceView = Backbone.View.extend({
 	},
 	place_reload: function() {
 		var ind = 0;
+		var view = this;
 		_.each(this.model.get('transport'), function(transport_type, transport_index) {
 			_.each(transport_type.routes, function(route) {
 				route.color = randomColor({luminosity: 'dark'});
 				route.visible = false;
+				view.RefColors[transport_index + route.ref] = route.color;
 			});
 		});
 		
@@ -51,10 +54,13 @@ var PlaceView = Backbone.View.extend({
 					else {
 						$(iden).css('background', '#FFFFFF');
 					}
-					view.buildRoute(transport_index);
+					//view.buildRoute(transport_index);
+					view.buildAllRoutes(transport_index);
 				});
 			});
 		});
+		
+		this.buildAllRoutes('bus');
 	},
 	buildRoute: function(tr_type) {
 		this.RouteLayer.clearLayers();
@@ -79,5 +85,96 @@ var PlaceView = Backbone.View.extend({
 		});
 		
 		map.addLayer(this.RouteLayer);
+	},
+	buildAllRoutes: function(tr_type) {
+        var lineWeight = 6;
+        //var lineColors = ['red', '#08f', '#0c0', '#f80'];
+
+        var outlines = L.layerGroup();
+        var lineBg = L.layerGroup();
+        var busLines = L.layerGroup();
+
+		var view = this;
+		var map = this.AppData.get('map');
+        var linesOnSegment, segmentCoords, segmentWidth;
+		
+		var tr_arr = this.model.get('transport')[tr_type];
+		var tr_arr_lines = tr_arr.lines.features;
+		_.each(tr_arr_lines, function(lineSegment) {
+			var visible = false;
+			linesOnSegment = lineSegment.properties.routes;
+			_.each(linesOnSegment, function(el) {
+				_.each(tr_arr.routes, function(route) {
+					if(route.ref == el && route.visible) {
+						visible = true;
+					}
+				});
+			});
+			
+			if(visible) {
+				if(lineSegment.geometry.type == "LineString") {
+					segmentCoords = L.GeoJSON.coordsToLatLngs(lineSegment.geometry.coordinates, 0);
+					
+					segmentWidth = linesOnSegment.length * (lineWeight + 1);
+
+					L.polyline(segmentCoords, {
+					  color: '#000',
+					  weight: segmentWidth + 5,
+					  opacity: 1
+					}).addTo(outlines);
+
+					L.polyline(segmentCoords, {
+					  color: '#fff',
+					  weight: segmentWidth + 3,
+					  opacity: 1
+					}).addTo(lineBg);
+
+					var j=0;
+					_.each(linesOnSegment, function(el) {
+						L.polyline(segmentCoords, {
+							color: view.RefColors[tr_type + el],
+							weight: lineWeight,
+							opacity: 1,
+							offset: j * (lineWeight + 1) - (segmentWidth / 2) + ((lineWeight + 1) / 2)
+						}).addTo(busLines);
+						j++;
+					});
+				}
+				else {
+					_.each(lineSegment.geometry.coordinates, function(multiSegment) {
+						segmentCoords = L.GeoJSON.coordsToLatLngs(multiSegment, 0);
+
+						segmentWidth = linesOnSegment.length * (lineWeight + 1);
+
+						L.polyline(segmentCoords, {
+						  color: '#000',
+						  weight: segmentWidth + 5,
+						  opacity: 1
+						}).addTo(outlines);
+
+						L.polyline(segmentCoords, {
+						  color: '#fff',
+						  weight: segmentWidth + 3,
+						  opacity: 1
+						}).addTo(lineBg);
+
+						var j=0;
+						_.each(linesOnSegment, function(el) {
+							L.polyline(segmentCoords, {
+								color: view.RefColors[tr_type + el],
+								weight: lineWeight,
+								opacity: 1,
+								offset: j * (lineWeight + 1) - (segmentWidth / 2) + ((lineWeight + 1) / 2)
+							}).addTo(busLines);
+							j++;
+						});
+					});
+				}
+			}
+        });
+
+        outlines.addTo(map);
+        lineBg.addTo(map);
+        //busLines.addTo(map);
 	}
 });
