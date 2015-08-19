@@ -19,7 +19,7 @@ FROM
 		place_id,
 		route_type,
 		way_id,
-		array_agg(refnum) AS routes,
+		array_agg(DISTINCT refnum) AS routes,
 		geom
 	FROM
 		(SELECT
@@ -48,6 +48,6 @@ FROM
 					nodes.id = t_nodes.node_id
 				ORDER BY way_pos, node_pos) as nodes
 			JOIN transport_location USING(route_id)
-		GROUP BY place_id, route_type, refnum, way_id) as ways
+		GROUP BY place_id, route_type, refnum, way_id, route_id, way_pos) as ways
 	GROUP BY place_id, route_type, way_id, geom) as linked_ways
 GROUP BY place_id, route_type, routes;
