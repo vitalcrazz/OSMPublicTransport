@@ -15,7 +15,7 @@ SELECT
 	route_type,
 	routes,
 	oneway,
-	ST_LineMerge(ST_Union(linked_ways.geom)) as geom
+	ST_SimplifyPreserveTopology(ST_LineMerge(ST_Union(linked_ways.geom)),0.00004)
 FROM
 	(SELECT
 		place_id,
@@ -58,33 +58,48 @@ FROM
 	GROUP BY place_id, route_type, way_id, geom, oneway) as linked_ways
 GROUP BY place_id, route_type, routes, oneway;
 
--- need to delete geom2 from p2; geom1 stay as is
--- need to add to p1 all routes of p2
--- need to
-UPDATE place_routes AS pr
-SET geom = pgeom
-FROM (
-	SELECT ST_Difference(geom, geom2) AS pgeom, pid
+CREATE OR REPLACE FUNCTION array_distinct(anyarray)
+RETURNS anyarray AS $$
+	SELECT ARRAY(SELECT DISTINCT unnest($1))
+$$ LANGUAGE sql;
+
+-- delete geom2 from p2; geom1 stay as is
+-- add to p1 all routes of p2
+WITH updated_rows AS
+(
+	UPDATE place_routes AS pr
+	SET geom = pgeom
 	FROM (
-		SELECT p2.id AS pid, 
-			p2.geom AS geom,
-			(ST_Dump((p1.geom))).path AS path1, 
-			(ST_Dump(p1.geom)).geom AS geom1, 
-			(ST_Dump((p2.geom))).path AS path2, 
-			(ST_Dump(p2.geom)).geom AS geom2
-		FROM place_routes AS p1, place_routes AS p2
-		WHERE p1.oneway = TRUE AND
-			p2.oneway = TRUE AND
-			p1.id > p2.id AND
-			p1.place_id = p2.place_id AND
-			p1.routes && p2.routes AND
-			ST_Intersects(p1.geom, p2.geom) AND
-			ST_NumGeometries(ST_Intersection(p1.geom, p2.geom)) > ST_NumGeometries(p1.geom) and
-			ST_NumGeometries(ST_Intersection(p1.geom, p2.geom)) > ST_NumGeometries(p2.geom)
-	) AS T1
-	WHERE ST_Intersects(geom1, geom2) and ST_NumGeometries(ST_Intersection(geom1, geom2)) > 1
-) AS T2
-WHERE pr.id = T2.pid;
+		SELECT ST_Difference(geom, geom2) AS pgeom, id1, id2, array_distinct(routes1 || routes2) AS j_routes
+		FROM (
+			SELECT p1.id AS id1,
+				p1.routes AS routes1,
+				p2.routes AS routes2,
+				p2.id AS id2,
+				p2.geom AS geom,
+				(ST_Dump((p1.geom))).path AS path1, 
+				(ST_Dump(p1.geom)).geom AS geom1, 
+				(ST_Dump((p2.geom))).path AS path2, 
+				(ST_Dump(p2.geom)).geom AS geom2
+			FROM place_routes AS p1, place_routes AS p2
+			WHERE p1.oneway = TRUE AND
+				p2.oneway = TRUE AND
+				p1.id > p2.id AND
+				p1.place_id = p2.place_id AND
+				p1.routes && p2.routes AND
+				ST_Intersects(p1.geom, p2.geom) AND
+				ST_NumGeometries(ST_Intersection(p1.geom, p2.geom)) > ST_NumGeometries(p1.geom) AND
+				ST_NumGeometries(ST_Intersection(p1.geom, p2.geom)) > ST_NumGeometries(p2.geom)
+		) AS T1
+		WHERE ST_Intersects(geom1, geom2) and ST_NumGeometries(ST_Intersection(geom1, geom2)) > 1
+	) AS T2
+	WHERE pr.id = T2.id2
+	RETURNING id1, j_routes
+)
+UPDATE place_routes AS p1r
+SET routes = j_routes
+FROM updated_rows
+WHERE p1r.id = id1;
 
 SELECT ST_AsGeoJson(geom)
 FROM place_routes
