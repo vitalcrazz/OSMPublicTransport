@@ -1,20 +1,31 @@
 CREATE TABLE IF NOT EXISTS
-place_routes (
+place_routes_temp (
 	id SERIAL PRIMARY KEY,
-	place_id INT NOT NULL,
+	place_id INT,
 	route_type VARCHAR(128) NOT NULL,
 	routes TEXT[] NOT NULL,
 	oneway BOOLEAN NOT NULL,
+	route_name TEXT,
 	geom GEOMETRY NOT NULL);
 
-TRUNCATE TABLE place_routes;
+CREATE TABLE IF NOT EXISTS
+place_routes (
+	id SERIAL PRIMARY KEY,
+	place_id INT,
+	route_type VARCHAR(128) NOT NULL,
+	routes TEXT[] NOT NULL,
+	geom GEOMETRY NOT NULL);
 
-INSERT INTO place_routes (place_id, route_type, routes, oneway, geom)
+TRUNCATE TABLE place_routes_temp;
+
+INSERT INTO place_routes_temp (place_id, route_type, routes, oneway, route_name, geom)
 SELECT
 	place_id,
 	route_type,
 	routes,
 	oneway,
+	NULL,
+--	route_name,
 	ST_SimplifyPreserveTopology(ST_LineMerge(ST_Union(linked_ways.geom)),0.00004)
 FROM
 	(SELECT
@@ -22,6 +33,7 @@ FROM
 		route_type,
 		way_id,
 		oneway,
+--		route_name,
 		array_agg(DISTINCT refnum) AS routes,
 		geom
 	FROM
@@ -31,6 +43,7 @@ FROM
 			refnum,
 			way_id,
 			oneway,
+--			route_name,
 			ST_makeLine(nodes.geom) as geom
 		FROM
 			(SELECT
@@ -38,6 +51,10 @@ FROM
 					relations.tags->'ref' as refnum,
 					relations.tags->'route' as route_type,
 					(exist(ways.tags, 'oneway') and ways.tags->'oneway'!='no') as oneway,
+--					CASE
+--						WHEN (exist(ways.tags, 'oneway') and ways.tags->'oneway'!='no') THEN ways.tags->'name'
+--						ELSE NULL
+--					END AS route_name,
 					t_nodes.node_pos as node_pos,
 					relation_members.sequence_id as way_pos,
 					relation_members.member_id as way_id,
@@ -63,11 +80,16 @@ RETURNS anyarray AS $$
 	SELECT ARRAY(SELECT DISTINCT unnest($1))
 $$ LANGUAGE sql;
 
+CREATE OR REPLACE FUNCTION array_sort(anyarray)
+RETURNS anyarray AS $$
+  SELECT ARRAY(SELECT unnest($1) ORDER BY 1)
+$$ LANGUAGE sql;
+
 -- delete geom2 from p2; geom1 stay as is
 -- add to p1 all routes of p2
 WITH updated_rows AS
 (
-	UPDATE place_routes AS pr
+	UPDATE place_routes_temp AS pr
 	SET geom = pgeom
 	FROM (
 		SELECT ST_Difference(geom, geom2) AS pgeom, id1, id2, array_distinct(routes1 || routes2) AS j_routes
@@ -81,7 +103,7 @@ WITH updated_rows AS
 				(ST_Dump(p1.geom)).geom AS geom1, 
 				(ST_Dump((p2.geom))).path AS path2, 
 				(ST_Dump(p2.geom)).geom AS geom2
-			FROM place_routes AS p1, place_routes AS p2
+			FROM place_routes_temp AS p1, place_routes_temp AS p2
 			WHERE p1.oneway = TRUE AND
 				p2.oneway = TRUE AND
 				p1.id > p2.id AND
@@ -96,10 +118,46 @@ WITH updated_rows AS
 	WHERE pr.id = T2.id2
 	RETURNING id1, j_routes
 )
-UPDATE place_routes AS p1r
+UPDATE place_routes_temp AS p1r
 SET routes = j_routes
 FROM updated_rows
 WHERE p1r.id = id1;
+
+
+CREATE OR REPLACE FUNCTION route_geom(text, integer)
+RETURNS text AS $$
+	SELECT ST_AsGeoJson(ST_Union(geom))
+	FROM place_routes_temp
+	WHERE $1 = ANY(routes) AND place_id = $2
+$$ LANGUAGE sql;
+
+-- SELECT route_geom('2', 1306984);
+
+-- step 2 of generalization
+CREATE OR REPLACE VIEW oneway_connections AS
+SELECT ST_Union(p1.geom, p2.geom) AS geom, p1.id AS id1, p2.id AS id2
+FROM place_routes_temp AS p1, place_routes_temp AS p2
+WHERE p1.oneway = TRUE AND
+	p2.oneway = TRUE AND
+--	p1.route_name != p2.route_name AND
+	p1.id > p2.id AND
+	p1.place_id = p2.place_id AND
+	p1.routes && p2.routes AND
+	ST_Intersects(p1.geom, p2.geom);
+	
+SELECT ST_AsGeoJson(o1.geom), ST_AsGeoJson(o2.geom)
+FROM oneway_connections o1, oneway_connections o2
+WHERE o1.id1 != o2.id1 AND o1.id1 != o2.id2 AND o1.id2 != o2.id1 AND o1.id2 != o2.id2 AND o1.id1 < o2.id1 AND
+	ST_Intersects(o1.geom, o2.geom) AND
+	ST_NumGeometries(ST_Intersection(o1.geom, o2.geom)) > 1;
+
+
+TRUNCATE TABLE place_routes;
+
+INSERT INTO place_routes (place_id, route_type, routes, geom)
+SELECT place_id, route_type, array_sort(routes) as sroutes, ST_LineMerge(ST_Union(geom)) AS geom
+FROM place_routes_temp
+GROUP BY place_id, route_type, sroutes;
 
 SELECT ST_AsGeoJson(geom)
 FROM place_routes
